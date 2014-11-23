@@ -1,3 +1,13 @@
+# Do NOT push original drivers.json, jobs.json (1.85GB)
+project_data/drivers.json
+project_data/jobs.json
+
+# OS generated files
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
