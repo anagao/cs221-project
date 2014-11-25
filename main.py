@@ -12,10 +12,10 @@ def main():
     distance_matrix = create_graph.generate_distance_matrix(pickup_grid, delivery_grid)
     print 'generate_distance_matrix() complete.'
 
-    totalNumDays = -1 # total number of days that the algorithm is creating a schedule for
+    max_days = 5 # total number of days that the algorithm is creating a schedule for
     
-    # bestroute = algorithm.BestRoute(...)
-    # bestroute.solve()
+    # br = algorithm.BestRoute(... distance_matrix, delivery_grid, max_days, ...)
+    # bestPaths, pathScores = br.solve()
 
 if __name__ == '__main__':
-    main()    
+    main()

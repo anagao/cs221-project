@@ -1,11 +1,13 @@
-import numpy, Queue
+from __future__ import division
+import Queue
+import util
 
 """
 BestRoute is a class that expects 
 Input:
 	Graph: A graph with the following properties:
 		We require that once a truck picks up a load, it must drop it off
-		befroe picking up another load. Thus, we can think of a full path as
+		before picking up another load. Thus, we can think of a full path as
 		start -> pickup1 -> dropoff1 -> pickup2 -> dropoff2 -----> end 
 		and model this graph as having the following features:
 		pickup nodes, lat,long, which only have an edge to the respective dropoff location
@@ -38,35 +40,30 @@ Input:
 			prevNode
 			nextNode
 
-
-	heur_data:
-		heur_data is a map that contains the data for the heuristic.
-		key=price_grid
-		key=job_density_grid
-
-
 	Min_days: The minimum number of days that a trip can last.
-	Max_days: The maximum number of days that a trip can last.
+	Max_days: The maximum number of days that a trip can last / total number of days that the algorithm is creating a schedule for
 	Start_latitude: the latitude of the starting location for the truck
 	Start_longitude: the longitude of the starting locaiton for the truck
+	NOTE: we assume truck must start and end at same location! (truck goes on a tour/cycle)
 
 """
 class BestRoute(object):
 	PROFIT_THRESHOLD = 100
 	EXPLORE_EDGES = 100
 	FIND_NODE_DEPTH = 4
-	HEURISTIC_WEIGHTS = [1, 1, 1]
 
-	def __init__(self, graph, heur_data, min_days, max_days):
+	def __init__(self, graph, distance_matrix, delivery_grid, 
+				start_lat, start_lng, min_days, max_days):
 		self.graph = graph
-		self.heur_data = heur_data
+		self.distance_matrix = distance_matrix
+		self.delivery_grid = delivery_grid
+		self.start_lat, self.start_lng = start_lat, start_lng # heuristic assumes start location == end location!
 		self.min_days = min_days
 		self.max_days = max_days
+
 		self.bestScore = -1 *float('inf')
 		self.bestPaths = []
 		self.pathScores = []
-
-
 
 	"""
 	solve
@@ -74,23 +71,11 @@ class BestRoute(object):
 	anywhere in the specified range. Because the problem is NP-hard, solve aims to find
 	a best solution in real time, but does not guarantee an optimal soluiton.
 	"""
-	def solve():
-
-		def getHeurScore(node):
-			#TODO write the heuristic
-			#features
-			#average number of jobs in area number of jobs nearby
-			#average price of jobs nearby
-			#average price of gas nearby
-			#distance from home
-			#time left - if not enough to get home, -infinite
-			#dot_product with weights array
-			#we should learn what these weights are.
-
+	def solve(self):
 
 		def updateBestPaths(cur_profit, cur_path):
 			round_trip_cost = cur_profit - node.home.price
-			if cur_days + node.home.time > self.min_days
+			if cur_days + node.home.time > self.min_days:
 				if abs(round_trip_cost - self.bestScore) < PROFIT_THRESHOLD: #TODO round
 					if round_trip_cost > self.bestScore:
 						self.bestScore = round_trip_cost
@@ -110,13 +95,13 @@ class BestRoute(object):
 
 		def find_next_node(node, visited, cur_days, depth=0):
 			if depth == FIND_NODE_DEPTH:
-				node_hueristic_score = getHeurScore(node, cur_days)
+				node_hueristic_score = self.evaluation_function(prevJob, nextJob, cur_days)
 				return None, node_hueristic_score
-			pq = Queue.PriorityQueue() #need to keep best scores, so multiply input by -1.
+			pq = Queue.PriorityQueue()
 
 			for edge in node.edges:
-				if edge.nextNode
-				heur_score = -1 * getHeurScore(edge.next, cur_days)
+				if edge.nextNode:
+					heur_score = -1 * self.evaluation_function(prevJob, nextJob, cur_days)  # need to keep best scores, so multiply input by -1
 
 				if pq.qsize() == EXPLORE_EDGES:
 					min_edge = pq.get()
@@ -165,10 +150,83 @@ class BestRoute(object):
 			rec_solve(next_node.nextNode(), visited, cur_days + next_edge.time, cur_profit + next_edge.profit, cur_path)
 						
 
-		node = self.graph.getStartNode()
+		node = self.graph.getStartNode() # TODO: change to start with nodes around self.start_lat and self.start_lng
 		visited = set()
 		cur_path = []
 		rec_solve(node, visited, 0, 0, cur_path)
 		return self.bestPaths, pathScores
 
+	def evaluation_function(self, prevJob, nextJob, cur_days):
+		"""
+		Evaluation function, used in depth-limited search
+		@author Aaron Nagao
 
+		@param <dict> prevJob: the job I was just at
+		@param <dict> nextJob: the job I am considering choosing
+		@param <float> cur_days: the current number of days I have fulfilled, up to and including delivering prevJob (but NOT including driving from prevJob to nextJob, or fulfilling nextJob)
+
+		@return <float> estimate of the value of choosing nextJob. Higher value = better choice.
+
+		TODO: change manual weights of 1 to learned weights
+
+		Features for evaluation function:
+		# 1) Number of miles required to drive to next job and fulfill next job
+		# 2) price of this job
+		# 3a) After we deliver nextJob, how many other jobs are in the area?
+		# 3b) After we deliver nextJob, what's the average price of other jobs in the delivery area?
+		# TODO: avg gas price in the area?
+		"""
+		# key: <String>featureName => value: <tuple>(weight, featureValue)
+		# Positive weights for good features.
+		features = dict()
+
+		# First, check whether I can finish this job in time
+		prevEnd_nextStart_nextEnd = self.distance_matrix[(prevJob['_id']['$oid'], nextJob['_id']['$oid'])] # miles required to drive to next job and fulfill next job (prevJob.end => nextJob.start => nextJob.end)
+		
+		(from_lng, from_lat) = nextJob['deliveryAddress']['location']['coordinates']
+  		(to_lng, to_lat) = (self.start_lng, self.start_lat)
+		nextEnd_home = util.distance(from_lat, from_lng, to_lat, to_lng)
+		
+		sumDays_nextJobAndHome = ( (prevEnd_nextStart_nextEnd + nextEnd_home) / util.MPH ) / 24 # day = miles / miles/hr / 24hr/day
+		if cur_days + sumDays_nextJobAndHome > self.max_days:
+			return float('-inf') # cannot take on this job
+		
+		# 1) Number of miles required to drive to next job and fulfill next job
+		features['jobMiles'] = (-1, prevEnd_nextStart_nextEnd) # negative weight (prefer shorter jobs)
+
+		# 2) price of this job
+		features['jobPrice'] = (1, nextJob['price'])
+		
+		# 3a) After we deliver nextJob, how many other jobs are in the area?
+		(to_lng, to_lat) = nextJob['deliveryAddress']['location']['coordinates']
+		to_i, to_j = int(to_lat), int(to_lng)  
+		jobsInDeliveryArea = self.delivery_grid[ (to_i, to_j) ]
+		numJobsInDeliveryArea = len(jobsInDeliveryArea)
+		features['numJobsInDeliveryArea'] = (1, numJobsInDeliveryArea)
+
+		# 3b) After we deliver nextJob, what's the average price of other jobs in the delivery area?
+		if numJobsInDeliveryArea == 0:
+			avgPriceInDeliveryArea = 0
+		else:
+			avgPriceInDeliveryArea = sum([job['price'] for job in jobsInDeliveryArea]) / numJobsInDeliveryArea
+		features['avgPriceInDeliveryArea'] = (1, avgPriceInDeliveryArea)
+		
+		#print features
+		return sum([ v[0]*v[1] for k,v in features.iteritems() ]) # dot product of feature and its weight
+
+
+def testEvaluationFunction():
+	# code for testing evaluation_function()
+	import json, os
+	JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
+	prevJob, nextJob = None, None
+	with open(JOBS_WEEK) as f:
+		for i, line in enumerate(f):
+			if i==0:
+				prevJob = json.loads(line)
+			elif i==1:
+				nextJob = json.loads(line)
+			else:
+				break
+	cur_days = 1
+	# call BestRoute.evaluation_function(prevJob, nextJob, cur_days)

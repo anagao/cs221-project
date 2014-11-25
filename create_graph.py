@@ -6,9 +6,6 @@ import util
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
-def testNumDays():
-  return 10
-
 def generate_distance_matrix(pickup_grid, delivery_grid):
   '''
   Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
@@ -33,8 +30,8 @@ def generate_distance_matrix(pickup_grid, delivery_grid):
 
         distance_matrix[(job1['_id']['$oid'], job2['_id']['$oid'])] = d1 + d2
 
-  json.dump(distance_matrix, 'distance_matrix.json')
-
+  #json.dump(distance_matrix, 'distance_matrix.json')
+  return distance_matrix # hopefully it fits in memory, else dump to json
 
 def discretize_job_locations(jobs_file):
   '''
