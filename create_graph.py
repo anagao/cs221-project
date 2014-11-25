@@ -6,18 +6,20 @@ import util
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
+def testNumDays():
+  return 10
 
-def generate_distance_matrix(jobs_file):
+def generate_distance_matrix(pickup_grid, delivery_grid):
   '''
   Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
   Hopefully we can do all that computation in memory (if not lower k-hop neighbors from 3 to 2).
+
+  Returns a dictionary with key=(job1oid, job2oid)
+  and value=total distance doing end(job1) -> start(job2) -> end(job2)
   '''
   distance_matrix = {}
   
-  print 'Loading Grids...'
-  pickup_grid, delivery_grid = util.load_grids()
-
-  print 'Sorted. Building matrix...'
+  print 'Building matrix...'
   progress, total =  0, len(jobs)**2
   print total 
 
@@ -32,7 +34,6 @@ def generate_distance_matrix(jobs_file):
         distance_matrix[(job1['_id']['$oid'], job2['_id']['$oid'])] = d1 + d2
 
   json.dump(distance_matrix, 'distance_matrix.json')
-
 
 
 def discretize_job_locations(jobs_file):
