@@ -6,7 +6,7 @@ import util
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
-def generate_distance_matrix(pickup_grid, delivery_grid):
+def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   '''
   Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
   Hopefully we can do all that computation in memory (if not lower k-hop neighbors from 3 to 2).
@@ -14,15 +14,21 @@ def generate_distance_matrix(pickup_grid, delivery_grid):
   Returns a dictionary with key=(job1oid, job2oid)
   and value=total distance doing end(job1) -> start(job2) -> end(job2)
   '''
+
+  if from_file:
+    return json.load(open(from_file))
+
   distance_matrix = {}
   
   print 'Building matrix...'
-  progress, total =  0, len(jobs)**2
+  progress, total =  0, sum(len(v) for v in delivery_grid.values())
   print total 
 
   for (start_lat, start_lng) in delivery_grid:
-    for job in delivery_grid[start_loc]:
-      for job2 in util.neighbors(pickup_grid, start_lat, start_lng, k=2):
+    neighbors = util.neighbors(pickup_grid, start_lat, start_lng, k=2)
+    for job1 in delivery_grid[(start_lat, start_lng)]:
+      util.print_progress(progress, total)
+      for job2 in neighbors:
         if job2['pickupDate'] < job1['pickupDate']: continue
 
         d1 = util.interjob_distance(job1, job2)
@@ -30,8 +36,12 @@ def generate_distance_matrix(pickup_grid, delivery_grid):
 
         distance_matrix[(job1['_id']['$oid'], job2['_id']['$oid'])] = d1 + d2
 
-  #json.dump(distance_matrix, 'distance_matrix.json')
-  return distance_matrix # hopefully it fits in memory, else dump to json
+      progress += 1
+  
+  with open(os.path.join('project_data', 'distance_matrix.json'), 'w') as out:
+    json.dump(distance_matrix, out) # Dump it so that we don't have to run this entire procedure again
+  
+  return distance_matrix
 
 def discretize_job_locations(jobs_file):
   '''
@@ -68,36 +78,5 @@ def discretize_job_locations(jobs_file):
 
 
 if __name__ == '__main__':
-  discretize_job_locations(JOBS_WEEK)
-
-
-
-
-# def generate_distance_matrix(jobs_file):
-#   distance_matrix = {}
-#   jobs = []
-#   with open(jobs_file) as f:
-#     for line in f:
-#       job = json.loads(line)
-#       jobs.append(job)
-  
-#   jobs = sorted(jobs, key=lambda job: job['pickupDate'])
-#   print 'Sorted. Building matrix...'
-#   progress, total =  0, len(jobs)**2
-#   print total
-#   for job1 in jobs:
-#     for job2 in jobs:
-#       if job2['pickupDate'] < job1['pickupDate']: continue
-#       util.print_progress(progress, total); progress += 1
-
-#       # Measure distance: job1_end --> job2_start --> job2_end
-#       d1 = util.distance(job1['deliveryAddress']['location']['coordinates'][1], job1['deliveryAddress']['location']['coordinates'][0], \
-#                     job2['pickupAddress']['location']['coordinates'][1], job2['pickupAddress']['location']['coordinates'][0])
-#       if d1 > 300:
-#         continue
-#       d2 = util.distance(job2['pickupAddress']['location']['coordinates'][1], job2['pickupAddress']['location']['coordinates'][0], \
-#                     job2['deliveryAddress']['location']['coordinates'][1], job2['deliveryAddress']['location']['coordinates'][0])
-       
-#       distance_matrix[(job1['_id']['$oid'], job2['_id']['$oid'])] = d1 + d2
-
-#   json.dump(distance_matrix, 'distance_matrix.json')
+  generate_distance_matrix(*util.load_grids())
+  # Use this once weve run this once: generate_distance_matric(None, None, from_file=os.path.join('project_data', 'distance_matrix.json'))
