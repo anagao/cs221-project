@@ -1,4 +1,8 @@
-import sys, os, pickle, math
+import sys, os, math
+try:
+   import cPickle as pickle # faster because implemented in C
+except:
+   import pickle
 
 def print_progress(i, total):
   '''Print progress bar of i/total'''
@@ -70,8 +74,8 @@ def printTour(tour):
   totalPrice = 0
   for job in tour:
     totalPrice += job["price"]
-    print job['_id']['$oid'] + " ==" + str(job["price"]) + "==> ",
-  print totalPrice
+    print "#" + job['_id']['$oid'][-3:] + " ==$" + str(job["price"]) + "==>", # just print the last 3 digits of job id
+  print "Total=$" + str(totalPrice)
 
 MPH = 70 # Average miles per hour
 MPG = 6 # Miles per gallon (average semitruck)

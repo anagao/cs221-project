@@ -16,8 +16,9 @@ def main():
 
     best_score, bestTour = hillclimb.hillclimb(#distance_matrix=distance_matrix, 
                                 pickup_grid=pickup_grid, delivery_grid=delivery_grid,
-                                start_lat=26.775, start_lng=-80.058, # Florida
+                                start_lat=42, start_lng=-71, # Florida=(27,-80)
                                 max_days=max_days)
+    print "Final answer: ",
     util.printTour(bestTour)
     
     # br = algorithm.BestRoute(... distance_matrix, delivery_grid, max_days, ...)
