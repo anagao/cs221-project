@@ -15,12 +15,14 @@ def load_grids():
      Calling util.py::load_grids() takes approximately 2 minutes to load two 100mb files into memory.
 
      Note: We have a mean of ~155 jobs per node, with a standard 
-           deviation of ~290 jobs for delivery and pickup grids.'''  
+           deviation of ~290 jobs for delivery and pickup grids.'''
   with open(os.path.join('project_data', 'pickup_grid.pickle'), 'rb') as pickup_in:
     pickup_grid = pickle.load(pickup_in)
+  print "pickup_grid.pickle loaded."
 
   with open(os.path.join('project_data', 'delivery_grid.pickle'), 'rb') as delivery_in:
     delivery_grid = pickle.load(delivery_in)
+  print "delivery_grid.pickle loaded."
 
   return pickup_grid, delivery_grid
 
@@ -60,6 +62,16 @@ def intrajob_distance(job):
   (from_lng, from_lat) = job['pickupAddress']['location']['coordinates']
   (to_lng, to_lat) = job['deliveryAddress']['location']['coordinates']
   return distance(from_lat, from_lng, to_lat, to_lng)
+
+def printTour(tour):
+  '''
+  Pretty-prints a tour (list of job dicts)
+  '''
+  totalPrice = 0
+  for job in tour:
+    totalPrice += job["price"]
+    print job['_id']['$oid'] + " ==" + str(job["price"]) + "==> ",
+  print totalPrice
 
 MPH = 70 # Average miles per hour
 MPG = 6 # Miles per gallon (average semitruck)
