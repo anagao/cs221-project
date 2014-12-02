@@ -133,6 +133,7 @@ class BestRoute(object):
 					next_node_id, job_days, job_money, return_home_cost, next_score = find_next_node(neighbor_id, visited, cur_days + additional_days, depth+1)
 
 				if one_step_profit +  next_score > best_score:
+					print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 					best_score = one_step_profit + next_score
 					best_next_node_id = neighbor_id
 					best_job_days = additional_days
@@ -158,8 +159,13 @@ class BestRoute(object):
 			"""
 
 			next_node_id, job_days, job_money, return_home_cost, _ = find_next_node(node_id, visited, cur_days)
+			print(next_node_id)
+			print(job_days)
+			print(job_money)
+			print(return_home_cost)
+			print(_)
 
-			if next_node_id != -1 * float('inf'): #a valid next job exists
+			if next_node_id != -1: #a valid next job exists
 				cur_path.append(next_node_id)
 				path_profit.append(cur_profit + job_money - return_home_cost)
 				visited.add(next_node_id)
