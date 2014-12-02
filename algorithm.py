@@ -55,11 +55,10 @@ class BestRoute(object):
 	MAX_HOURS_PER_DAY = 8
 
 	def __init__(self, graph, start_lat, start_lng, min_days, max_days):
-		# Graph data structures
+		# Graph data structure
 		self.graph = graph
 
 		# user-defined parameters to algorithm
-		self.start_lat, self.start_lng = start_lat, start_lng # heuristic assumes start location == end location!
 		self.min_days, self.max_days = min_days, max_days
 				
 		# algorithm data structures
@@ -67,8 +66,8 @@ class BestRoute(object):
 		self.bestPaths = []
 		self.pathScores = []
 
-		self.start_job_id = graph.create_start_node(start_lat, start_lng)
-		# TODO: also create pseudo end-node
+		self.start_job_id = graph.create_start_node(start_lat, start_lng) # create pseudo-start node
+		# TODO: also create pseudo end-node. Should we assume end_location == start_location?
 
 	"""
 	solve

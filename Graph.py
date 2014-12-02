@@ -7,13 +7,21 @@ import random
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
-class Graph:  
+class Graph:
+  """
+  Usage:
+
+  graph.distances_from(job_id): takes a String job_id, returns a dict of the job's neighbors
+  graph.jobs[job_id]: dict, containing all relevant information about a job
+  graph.pickup_grid, graph.delivery_grid: dicts from (int(lat), int(lng)) => ["jobid1", "jobid2", ...]
+  """
+
   def __init__(self):
     self._load_jobs(JOBS_WEEK)
     self.pickup_grid, self.delivery_grid = util.load_grids()
     
   def distances_from(self, job1_id):
-    ''' Returns @distance
+    ''' Returns <dict>distance
         distance.keys() are the neighbors of job_id
         distance[neighbor] = tuple(interjob_distance, intrajob_distance)
         interjob_distance = distance(end(job_id) -> start(neighbor))
@@ -34,7 +42,7 @@ class Graph:
 
   def create_start_node(self, start_lat, start_lng):
     """
-    Add a pseudo "START" job to this graph, and all its internal data structures.
+    Add a pseudo "START" job to graph and its internal data structures.
     @return <String> id = the id of this newly-created pseudo-job
     """
     job_id = "PSEUDO_START_JOB"
