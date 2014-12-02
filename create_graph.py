@@ -52,6 +52,20 @@ def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   
   return distance_matrix
 
+def generate_distance_matrix_source(pickup_grid, job_latlngs, job1_id):
+  ''' Returnds @distance where @distance[neighbor_job_id] = distance doing end()
+  distances = {}'''
+  src_lat, src_lng = job_latlngs[job1_id]
+  for job2 in util.neighbors(pickup_grid, int(src_lat), int(src_lng), k=2):
+    if job2['pickupDate'] < job1['pickupDate']: continue
+
+      d1 = util.interjob_distance(job1, job2)
+      d2 = util.intrajob_distance(job2)
+
+      distances[job2['_id']['$oid']] = d1 + d2
+
+
+
 def discretize_job_locations(jobs_file):
   '''
   We bucketize jobs by rounding each latitude and longitude to the nearest integer.

@@ -51,12 +51,16 @@ class BestRoute(object):
 	PROFIT_THRESHOLD = 100
 	EXPLORE_EDGES = 100
 	FIND_NODE_DEPTH = 4
+	COST_PER_MILE = 1
+	MAX_HOURS_PER_DAY = 8
 
-	def __init__(self, graph, distance_matrix, delivery_grid, 
-				start_lat, start_lng, min_days, max_days):
-		self.graph = graph
+	def __init__(self, distance_matrix, delivery_grid, start_lat, start_lng, start_job, end_job, min_days, max_days, prices):
+
+		self.prices = prices
 		self.distance_matrix = distance_matrix
 		self.delivery_grid = delivery_grid
+		self.start_job = start_job
+		self.end_job
 		self.start_lat, self.start_lng = start_lat, start_lng # heuristic assumes start location == end location!
 		self.min_days = min_days
 		self.max_days = max_days
@@ -136,12 +140,16 @@ class BestRoute(object):
 			#of the terminal node. whichever original edge was best
 			#will be returned
 
+		def hours_to_drive_days(hours):
+			return hours / MAX_HOURS_PER_DAY + (hours % MAX_HOURS_PER_DAY) / MAX_HOURS_PER_DAY
+
 
 		def rec_solve(node, visited, cur_days, cur_profit, cur_path):
-			if cur_days + node.home.time > self.max_days:
+			to_home_hours = hours_to_drive_days(self.distance_matrix[node]["home"])
+			if cur_days + to_home_time > self.max_days:
 				return
 
-			updateBestPaths(cur_profit, cur_path)
+			updateBestPath(cur_profit, cur_path)
 
 			next_edge, _ = find_next_node(node, visited, cur_days)
 			visited.add(next_edge.nextNode())
@@ -150,11 +158,16 @@ class BestRoute(object):
 			rec_solve(next_node.nextNode(), visited, cur_days + next_edge.time, cur_profit + next_edge.profit, cur_path)
 						
 
-		node = self.graph.getStartNode() # TODO: change to start with nodes around self.start_lat and self.start_lng
+		#start node:      
+		#job id -> next_job.
+		#job id = 'start':
+			#start -> [next_jobs] -> distance.
+		node = self.start_job # TODO: change to start with nodes around self.start_lat and self.start_lng
 		visited = set()
 		cur_path = []
 		rec_solve(node, visited, 0, 0, cur_path)
-		return self.bestPaths, pathScores
+		return self.bestPath
+		#return self.bestPaths, self.pathScores
 
 	def evaluation_function(self, prevJob, nextJob, cur_days):
 		"""
