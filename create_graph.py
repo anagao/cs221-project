@@ -6,6 +6,16 @@ import util
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
+def generate_job_values(jobs_file):
+   values = {}
+   with open(jobs_file) as f:
+    for line in f:
+      job = json.loads(line)
+      values[job['_id']['$oid']] = job['price']
+
+    with open(os.path.join('project_data', 'values.json')) as out:
+      json.dump(values, out)
+
 def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   '''
   Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
@@ -14,7 +24,6 @@ def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   distance_matrix[job1id].keys() is all the neighbors of job1
   distance_matrix[job1id][job2id] = total distance doing end(job1) -> start(job2) -> end(job2)
   '''
-
   if from_file:
     return json.load(open(from_file))
 

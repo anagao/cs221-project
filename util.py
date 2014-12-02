@@ -1,4 +1,4 @@
-import sys, os, math
+import sys, os, math, json
 try:
    import cPickle as pickle # faster because implemented in C
 except:
@@ -9,6 +9,11 @@ def print_progress(i, total):
   sys.stdout.write('\r')
   sys.stdout.write('{0: .3f}%'.format(float(i)/total*100))
   sys.stdout.flush()
+
+def load_values():
+  '''Returns dictionary of dict[job_id] = value'''
+  with open(os.path.join('project_data', 'values.json')) as f:
+    return json.load(f)
 
 def load_grids():
   '''Returns discretized grids of (int(lat), int(lng)) -> [jobs]
@@ -66,6 +71,11 @@ def intrajob_distance(job):
   (from_lng, from_lat) = job['pickupAddress']['location']['coordinates']
   (to_lng, to_lat) = job['deliveryAddress']['location']['coordinates']
   return distance(from_lat, from_lng, to_lat, to_lng)
+
+def goto_job(start_lat, start_lng, job):
+  '''Returns distance from a latlng to start of a job'''
+  (to_lng, to_lat) = job['pickupAddress']['location']['coordinates']
+  return distance(start_lat, start_lng, to_lat, to_lng)
 
 def printTour(tour):
   '''
