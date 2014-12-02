@@ -11,11 +11,12 @@ def print_progress(i, total):
   sys.stdout.flush()
 
 def load_grids():
-  '''Returns discretized grids of (int(lat), int(lng)) -> [job_ids]
-     First return value is pickup location discretized. Second is dropoff
-     location discretized.
+  '''Returns discretized grids of (int(lat), int(lng)) -> ["jobid1", "jobid2", ...]
+     First return value is pickup location discretized.
+     Second is dropoff location discretized.
 
-     create_graph.py::discretize_job_locations() computed the grid and saved them to project data (Arjun sent the Dropbox link).
+     Assumes create_graph.py::discretize_job_locations() already computed the grid 
+     and saved them to Dropbox/project_data/delivery_grid.pickle and pickup_grid.pickle.
 
      Note: We have a mean of ~155 jobs per node, with a standard 
            deviation of ~290 jobs for delivery and pickup grids.'''

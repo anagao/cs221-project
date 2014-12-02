@@ -54,20 +54,21 @@ class BestRoute(object):
 	COST_PER_MILE = 1
 	MAX_HOURS_PER_DAY = 8
 
-	def __init__(self, distance_matrix, delivery_grid, start_lat, start_lng, start_job, end_job, min_days, max_days, prices):
+	def __init__(self, graph, start_lat, start_lng, min_days, max_days):
+		# Graph data structures
+		self.graph = graph
 
-		self.prices = prices
-		self.distance_matrix = distance_matrix
-		self.delivery_grid = delivery_grid
-		self.start_job = start_job
-		self.end_job
+		# user-defined parameters to algorithm
 		self.start_lat, self.start_lng = start_lat, start_lng # heuristic assumes start location == end location!
-		self.min_days = min_days
-		self.max_days = max_days
-
+		self.min_days, self.max_days = min_days, max_days
+				
+		# algorithm data structures
 		self.bestScore = -1 *float('inf')
 		self.bestPaths = []
 		self.pathScores = []
+
+		self.start_job_id = graph.create_start_node(start_lat, start_lng)
+		# TODO: also create pseudo end-node
 
 	"""
 	solve
@@ -97,16 +98,26 @@ class BestRoute(object):
 					self.pathScores = [round_trip_cost]
 
 
-		def find_next_node(node, visited, cur_days, depth=0):
-			if depth == FIND_NODE_DEPTH:
-				node_hueristic_score = self.evaluation_function(prevJob, nextJob, cur_days)
+		def find_next_node(node_id, visited, cur_days, depth=0):
+			"""
+			Given we are currently at <node_id>, find the next job we should assign,
+			and return the id of that next job.
+
+			@param <String> node_id
+			"""
+			# depth-limited search
+			if depth >= BestRoute.FIND_NODE_DEPTH:
+				node_hueristic_score = -1 * self.evaluation_function(node_id)
 				return None, node_hueristic_score
+			
 			pq = Queue.PriorityQueue()
+			for neighbor_id, (interjob_distance, intrajob_distance) in self.graph.distances_from(node_id):
+				# avoid visiting a job twice
+				if neighbor_id in visited: continue
 
-			for edge in node.edges:
-				if edge.nextNode:
-					heur_score = -1 * self.evaluation_function(prevJob, nextJob, cur_days)  # need to keep best scores, so multiply input by -1
-
+				# To limit search space, we only want to explore some of this job's neighbors.
+				# Choose which neighbors to explore using heuristic function.
+				heur_score = -1 * self.evaluation_function(neighbor_id)  # need to keep best scores, so multiply input by -1
 				if pq.qsize() == EXPLORE_EDGES:
 					min_edge = pq.get()
 					if heur_score < min_edge[0]:
@@ -118,8 +129,6 @@ class BestRoute(object):
 
 			###At this point, we have the predicted top EXPLORE_EDGES in memory
 			###TODO make this weighted by the score, so bad one steps aren't show stoppers.
-
-
 			best_score = -1 * float('inf')
 			best_edge = None
 			while pq.qsize != 0:
@@ -144,55 +153,52 @@ class BestRoute(object):
 			return hours / MAX_HOURS_PER_DAY + (hours % MAX_HOURS_PER_DAY) / MAX_HOURS_PER_DAY
 
 
-		def rec_solve(node, visited, cur_days, cur_profit, cur_path):
+		def rec_solve(node_id, visited, cur_days, cur_profit, cur_path):
+			"""
+			@param <String> node_id = id of a job
+			"""
+			# base case
 			to_home_hours = hours_to_drive_days(self.distance_matrix[node]["home"])
 			if cur_days + to_home_time > self.max_days:
 				return
 
-			updateBestPath(cur_profit, cur_path)
+			updateBestPaths(cur_profit, cur_path)
 
-			next_edge, _ = find_next_node(node, visited, cur_days)
+			next_edge, _ = find_next_node(node_id, visited, cur_days)
 			visited.add(next_edge.nextNode())
-			cur_path.append(node)
+			cur_path.append(node_id)
 
 			rec_solve(next_node.nextNode(), visited, cur_days + next_edge.time, cur_profit + next_edge.profit, cur_path)
 						
 
-		#start node:      
-		#job id -> next_job.
-		#job id = 'start':
-			#start -> [next_jobs] -> distance.
-		node = self.start_job # TODO: change to start with nodes around self.start_lat and self.start_lng
 		visited = set()
 		cur_path = []
-		rec_solve(node, visited, 0, 0, cur_path)
+		rec_solve(self.start_job_id, visited, 0, 0, cur_path)
 		return self.bestPath
 		#return self.bestPaths, self.pathScores
 
-	def evaluation_function(self, prevJob, nextJob, cur_days):
+	def evaluation_function(self, node_id, cur_days):
 		"""
-		Evaluation function, used in depth-limited search
+		Evaluation function: if I add node_id to the job schedule, how good is it?
 		@author Aaron Nagao
 
-		@param <dict> prevJob: the job I was just at
-		@param <dict> nextJob: the job I am considering choosing
-		@param <float> cur_days: the current number of days I have fulfilled, up to and including delivering prevJob (but NOT including driving from prevJob to nextJob, or fulfilling nextJob)
-
-		@return <float> estimate of the value of choosing nextJob. Higher value = better choice.
+		@param <String> node_id = id of the job I am evaluating
+		@return <float> estimate of the value of choosing node_id. Higher value = better choice.
 
 		TODO: change manual weights of 1 to learned weights
 
 		Features for evaluation function:
-		# 1) Number of miles required to drive to next job and fulfill next job
+		# 1) Number of miles required to fulfill this job
 		# 2) price of this job
-		# 3a) After we deliver nextJob, how many other jobs are in the area?
-		# 3b) After we deliver nextJob, what's the average price of other jobs in the delivery area?
+		# 3a) After we deliver this job, how many other jobs are in the area?
+		# 3b) After we deliver this job, what's the average price of other jobs in the delivery area?
 		# TODO: avg gas price in the area?
 		"""
 		# key: <String>featureName => value: <tuple>(weight, featureValue)
 		# Positive weights for good features.
 		features = dict()
 
+		"""
 		# First, check whether I can finish this job in time
 		prevEnd_nextStart_nextEnd = self.distance_matrix[(prevJob['_id']['$oid'], nextJob['_id']['$oid'])] # miles required to drive to next job and fulfill next job (prevJob.end => nextJob.start => nextJob.end)
 		
@@ -203,17 +209,19 @@ class BestRoute(object):
 		sumDays_nextJobAndHome = ( (prevEnd_nextStart_nextEnd + nextEnd_home) / util.MPH ) / 24 # day = miles / miles/hr / 24hr/day
 		if cur_days + sumDays_nextJobAndHome > self.max_days:
 			return float('-inf') # cannot take on this job
+		"""
 		
-		# 1) Number of miles required to drive to next job and fulfill next job
-		features['jobMiles'] = (-1, prevEnd_nextStart_nextEnd) # negative weight (prefer shorter jobs)
+		# 1) Number of miles required to fulfill this job
+		# negative weight (prefer shorter jobs)
+		features['jobMiles'] = (-1, util.distance(*self.graph.jobs[node_id]['pickup']+self.graph.jobs[node_id]['delivery']))
 
 		# 2) price of this job
-		features['jobPrice'] = (1, nextJob['price'])
+		features['jobPrice'] = (1, self.graph.jobs[node_id]['price'])
 		
-		# 3a) After we deliver nextJob, how many other jobs are in the area?
-		(to_lng, to_lat) = nextJob['deliveryAddress']['location']['coordinates']
+		# 3a) After we deliver this job, how many other jobs are in the area?
+		(to_lat, to_lng) = self.graph.jobs[node_id]['delivery']
 		to_i, to_j = int(to_lat), int(to_lng)  
-		jobsInDeliveryArea = self.delivery_grid[ (to_i, to_j) ]
+		jobsInDeliveryArea = self.graph.delivery_grid[ (to_i, to_j) ]
 		numJobsInDeliveryArea = len(jobsInDeliveryArea)
 		features['numJobsInDeliveryArea'] = (1, numJobsInDeliveryArea)
 
@@ -224,7 +232,7 @@ class BestRoute(object):
 			avgPriceInDeliveryArea = sum([job['price'] for job in jobsInDeliveryArea]) / numJobsInDeliveryArea
 		features['avgPriceInDeliveryArea'] = (1, avgPriceInDeliveryArea)
 		
-		#print features
+		# print features
 		return sum([ v[0]*v[1] for k,v in features.iteritems() ]) # dot product of feature and its weight
 
 

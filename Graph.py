@@ -32,8 +32,24 @@ class Graph:
 
     return distances
 
-  def start(self):
-    '''Returns a random start job_id'''
+  def create_start_node(self, start_lat, start_lng):
+    """
+    Add a pseudo "START" job to this graph, and all its internal data structures.
+    @return <String> id = the id of this newly-created pseudo-job
+    """
+    job_id = "PSEUDO_START_JOB"
+    
+    # Add START to self.jobs
+    self.jobs[job_id] = dict()
+    self.jobs[job_id]['price'] = 0
+    self.jobs[job_id]['pickup'] = None
+    self.jobs[job_id]['delivery'] = (start_lat, start_lng)
+    self.jobs[job_id]['date'] = 0
+
+    return job_id
+
+  def getRandomJobId(self):
+    '''Returns a random job_id'''
     return random.choice(self.jobs.keys())
 
   def _load_jobs(self, jobs_file):

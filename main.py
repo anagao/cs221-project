@@ -1,28 +1,30 @@
-import algorithm, create_graph, hillclimb, util, Graph
+import algorithm, Graph, hillclimb
 
 def main():
-    print 'main.py is calling util.load_grids()...'
-
-    # Assumes create_graph.discretize_job_locations() has already been called,
-    # so already created project_data/delivery_grid.pickle and pickup_grid.pickle
-    pickup_grid, delivery_grid = util.load_grids() # returns (rounded lat, rounded lng) => [ {job1}, {job2} ]
-    print 'util.load_grids() complete.'
-    # a dictionary with key=(job1oid, job2oid) and value=total distance doing end(job1) -> start(job2) -> end(job2)
-    #distance_matrix = create_graph.generate_distance_matrix(pickup_grid, delivery_grid)
-    G = Graph.Graph()
-    #print 'generate_distance_matrix() complete.'
-
+    graph = Graph()
+    
+    # user-defined parameters
+    start_lat, start_lng = 27, -80 # Florida=(27,-80)
+    min_days = 1
     max_days = 5 # total number of days that the algorithm is creating a schedule for
+    
+    # Arthur's tree search algorithm
+    br = algorithm.BestRoute(graph, start_lat, start_lng, min_days, max_days)
+    bestPath = br.solve()
+    print bestPath
 
-    best_score, bestTour = hillclimb.hillclimb(#distance_matrix=distance_matrix, 
+def greedyHillClimbing():
+    """
+    Greedy hill-climbing algorithm (Aaron)
+    """
+    graph = Graph()
+    pickup_grid, delivery_grid = graph.pickup_grid, graph.delivery_grid
+    best_score, bestTour = hillclimb.hillclimb(
                                 pickup_grid=pickup_grid, delivery_grid=delivery_grid,
                                 start_lat=42, start_lng=-71, # Florida=(27,-80)
-                                max_days=max_days)
+                                max_days=5)
     print "Final answer: ",
     util.printTour(bestTour)
-    
-    # br = algorithm.BestRoute(... distance_matrix, delivery_grid, max_days, ...)
-    # bestPaths, pathScores = br.solve()
 
 if __name__ == '__main__':
     main()
