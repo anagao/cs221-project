@@ -48,26 +48,24 @@ Input:
 
 """
 class BestRoute(object):
-	PROFIT_THRESHOLD = 100
 	EXPLORE_EDGES = 100
 	FIND_NODE_DEPTH = 4
-	COST_PER_MILE = 1
 	MAX_HOURS_PER_DAY = 8
+	MILES_PER_HOUR = 65
+	HOUR_PER_MILE = 1.0 / MILES_PER_HOUR
+	EMPTY_DOLLAR_PER_MILE = 1
+	FULL_DOLLAR_PER_MILE = 2
 
 	def __init__(self, graph, start_lat, start_lng, min_days, max_days):
 		# Graph data structure
 		self.graph = graph
 
 		# user-defined parameters to algorithm
-		self.min_days, self.max_days = min_days, max_days
+		self.max_days = max_days
 				
 		# algorithm data structures
-		self.bestScore = -1 *float('inf')
-		self.bestPaths = []
-		self.pathScores = []
-
 		self.start_job_id = graph.create_start_node(start_lat, start_lng) # create pseudo-start node
-		# TODO: also create pseudo end-node. Should we assume end_location == start_location?
+		self.end_job_id = self.start_job_id
 
 	"""
 	solve
@@ -77,69 +75,69 @@ class BestRoute(object):
 	"""
 	def solve(self):
 
-		def updateBestPaths(cur_profit, cur_path):
-			round_trip_cost = cur_profit - node.home.price
-			if cur_days + node.home.time > self.min_days:
-				if abs(round_trip_cost - self.bestScore) < PROFIT_THRESHOLD: #TODO round
-					if round_trip_cost > self.bestScore:
-						self.bestScore = round_trip_cost
-						self.bestPaths.append(list(cur_path)) #make copy of the path so far.
-						self.pathScores.append([round_trip_cost])
-						self.bestPaths = [self.bestPaths[i] for i in xrange(len(self.bestPaths)) \
-						if abs(self.pathScores[i] - self.bestScore) < PROFIT_THRESHOLD]
-					else:
-						self.bestPaths.append(list(cur_path)) #make copy of the path so far.
-						self.pathScores.append([round_trip_cost])
 
-				elif round_trip_cost - self.bestScore > PROFIT_THRESHOLD:
-					self.bestScore = round_trip_cost
-					self.bestPaths = [list(cur_path)]
-					self.pathScores = [round_trip_cost]
+		def hours_to_drive_days(hours):
+			return hours / MAX_HOURS_PER_DAY + (hours % MAX_HOURS_PER_DAY) / MAX_HOURS_PER_DAY
+
 
 
 		def find_next_node(node_id, visited, cur_days, depth=0):
 			"""
 			Given we are currently at <node_id>, find the next job we should assign,
-			and return the id of that next job.
+			and return next_node_id, job_days, job_money, return_home_cost
 
 			@param <String> node_id
 			"""
-			# depth-limited search
-			if depth >= BestRoute.FIND_NODE_DEPTH:
-				node_hueristic_score = -1 * self.evaluation_function(node_id)
-				return None, node_hueristic_score
-			
+
+			visited.add(node_id)
 			pq = Queue.PriorityQueue()
 			for neighbor_id, (interjob_distance, intrajob_distance) in self.graph.distances_from(node_id):
 				# avoid visiting a job twice
 				if neighbor_id in visited: continue
 
-				# To limit search space, we only want to explore some of this job's neighbors.
-				# Choose which neighbors to explore using heuristic function.
-				heur_score = -1 * self.evaluation_function(neighbor_id)  # need to keep best scores, so multiply input by -1
+				total_dist_to_home = interjob_distance + intrajob_distance + self.graph.get_distance(neighbor_id, self.end_job_id)
+				min_days_to_home = hours_to_drive_days(total_dist_to_home * HOUR_PER_MILE)
+				if cur_days + min_days_to_home > self.max_days: continue #don't consider if it forces not to get home on time.
+				
+				# need to keep best scores, so multiply input by -1
+				price = self.prices[neighbor_id]
+				score = -1 * (price - interjob_distance*EMPTY_DOLLAR_PER_MILE - intrajob_distance*FULL_DOLLAR_PER_MILE)
 				if pq.qsize() == EXPLORE_EDGES:
 					min_edge = pq.get()
-					if heur_score < min_edge[0]:
-						pq.put((heur_score, edge))
+					if score < min_edge[0]:
+						pq.put((score, (neighbor_id, interjob_distance, intrajob_distance, price)))
 					else:
 						pq.put(min_edge)
 				else:
-					pq.put((heur_score, edge))
+					pq.put((score, (neighbor_id, interjob_distance, intrajob_distance, price)))
 
 			###At this point, we have the predicted top EXPLORE_EDGES in memory
-			###TODO make this weighted by the score, so bad one steps aren't show stoppers.
 			best_score = -1 * float('inf')
-			best_edge = None
-			while pq.qsize != 0:
-				edge = pq.get()[1]
-				visited.add(edge.nextNode())
-				edge, score = find_next_node(edge.nextNode(), visited, cur_days + edge.time, depth+1)
-				visited.remove(edge.nextNode())
-				if score > best_score:
-					best_score = score
-					best_edge = edge
+			best_next_node_id = -1
+			best_job_days = None
+			best_jobs_money = None
+			best_return_home_cost = None
 
-			return best_edge
+			while pq.qsize != 0:
+				neg_one_step_profit, neighbor_tuple = pq.get()
+				neighbor_id, interjob_distance, intrajob_distance, price = neighbor_tuple
+				one_step_profit = -1 * neg_one_step_profit
+				additional_days = hours_to_drive_days((interjob_distance + intrajob_distance) * HOUR_PER_MILE)
+
+				if depth == FIND_NODE_DEPTH - 1: #limit the search
+					next_score = self.evaluation_function(neighbor_id)
+				else:
+					next_node_id, job_days, job_money, return_home_cost, next_score = find_next_node(neighbor_id, visited, cur_days + additional_days, depth+1)
+
+				if one_step_profit +  next_score > best_score:
+					best_score = one_step_profit + next_score
+					best_next_node_id = neighbor_id
+					best_job_days = additional_days
+					best_jobs_money = price - interjob_distance*EMPTY_DOLLAR_PER_MILE - intrajob_distance*FULL_DOLLAR_PER_MILE
+					best_return_home_cost = self.graph.get_distance(neighbor_id, self.end_job_id) * EMPTY_DOLLAR_PER_MILE
+
+			visited.remove(node_id)
+			return best_next_node_id, best_job_days, best_jobs_money, best_return_home_cost, best_score
 
 			#now we have all of the interesting edges in a list.
 			#now we dive deep a few layers, figuring out which one
@@ -148,33 +146,27 @@ class BestRoute(object):
 			#of the terminal node. whichever original edge was best
 			#will be returned
 
-		def hours_to_drive_days(hours):
-			return hours / MAX_HOURS_PER_DAY + (hours % MAX_HOURS_PER_DAY) / MAX_HOURS_PER_DAY
 
 
-		def rec_solve(node_id, visited, cur_days, cur_profit, cur_path):
+		def rec_solve(node_id, visited, cur_days, cur_profit, cur_path, path_profit):
 			"""
 			@param <String> node_id = id of a job
 			"""
-			# base case
-			to_home_hours = hours_to_drive_days(self.distance_matrix[node]["home"])
-			if cur_days + to_home_time > self.max_days:
-				return
 
-			updateBestPaths(cur_profit, cur_path)
+			next_node_id, job_days, job_money, return_home_cost, _ = find_next_node(node_id, visited, cur_days)
 
-			next_edge, _ = find_next_node(node_id, visited, cur_days)
-			visited.add(next_edge.nextNode())
-			cur_path.append(node_id)
-
-			rec_solve(next_node.nextNode(), visited, cur_days + next_edge.time, cur_profit + next_edge.profit, cur_path)
-						
+			if next_node_id != -1 * float('inf'): #a valid next job exists
+				cur_path.append(next_node_id)
+				path_profit.append(cur_profit + job_money - return_home_cost)
+				visited.add(next_node_id)
+				rec_solve(next_node_id, visited, cur_days + job_days, cur_profit + job_money, cur_path, path_profit)
 
 		visited = set()
 		cur_path = []
-		rec_solve(self.start_job_id, visited, 0, 0, cur_path)
-		return self.bestPath
-		#return self.bestPaths, self.pathScores
+		path_profit = []
+		rec_solve(self.start_job_id, visited, 0, 0, cur_path, path_profit)
+		#todo return best path of the array.
+		return cur_path, path_profit
 
 	def evaluation_function(self, node_id, cur_days):
 		"""
@@ -195,6 +187,7 @@ class BestRoute(object):
 		"""
 		# key: <String>featureName => value: <tuple>(weight, featureValue)
 		# Positive weights for good features.
+		return 0 #TODO remove this
 		features = dict()
 
 		"""

@@ -1,8 +1,8 @@
 import algorithm, Graph, hillclimb, util
 
 def main():
-    graph = Graph()
-    
+    graph = Graph.Graph()
+    print("made the graph successfully")
     # user-defined parameters
     start_lat, start_lng = 27, -80 # Florida=(27,-80)
     min_days = 1

@@ -29,8 +29,10 @@ class Graph:
     '''
     distances = {}
     job1 = self.jobs[job1_id]
-    for job2_id in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
+    for job2_raw in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
+      job2_id = job2_raw['_id']['$oid']
       job2 = self.jobs[job2_id]
+      #job2 = self.jobs[job2_id]
       if job2['date'] < job1['date']: continue
 
       d1 = util.distance(*job1['delivery']+job2['pickup']) #util.interjob_distance(job1, job2)
@@ -39,6 +41,11 @@ class Graph:
       distances[job2_id] = (d1, d2)
 
     return distances
+
+  def get_distance(self, job1_id, job2_id):
+    job1 = self.jobs[job1_id]
+    job2 = self.jobs[job2_id]
+    return util.distance(*job1['delivery']+job2['pickup'])
 
   def create_start_node(self, start_lat, start_lng):
     """
@@ -85,3 +92,4 @@ class Graph:
         jobs[job_id]['date'] = job['pickupDate']
 
     self.jobs = dict(jobs)
+
