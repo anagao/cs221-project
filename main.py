@@ -1,4 +1,4 @@
-import algorithm, Graph, hillclimb
+import algorithm, Graph, hillclimb, util
 
 def main():
     graph = Graph()
