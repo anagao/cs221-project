@@ -1,11 +1,14 @@
-import datetime, collections, os, json, sys
-import pickle
-import math
+import datetime, collections, os, json
 import numpy
 import matplotlib.pyplot as plt
+import util
 
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
+
+
+def remove_zero_distances(jobs_file):
+  '''Removes all jobs with distance 0'''
 
 
 def unique_jobs(jobs_file):
@@ -59,7 +62,7 @@ def get_week_jobs(jobs_file):
   
   print 'Writing'
 
-  with open(os.path.join('..', 'project_data', outfile), 'w') as out:
+  with open(os.path.join('project_data', outfile), 'w') as out:
     with open(jobs_file) as f:
       for line in f:
         job = json.loads(line)
@@ -114,7 +117,7 @@ def check_distance_accuracy(jobs_file):
         continue
       from_latlng = job['pickupAddress']['location']['coordinates']
       to_latlng = job['deliveryAddress']['location']['coordinates']
-      geodesic_distance = distance(from_latlng[1], from_latlng[0], to_latlng[1], to_latlng[0])
+      geodesic_distance = util.distance(from_latlng[1], from_latlng[0], to_latlng[1], to_latlng[0])
       error = geodesic_distance/job['distanceInMiles']-1
       distance_diffs.append(error)
 

@@ -29,8 +29,7 @@ class Graph:
     '''
     distances = {}
     job1 = self.jobs[job1_id]
-    for job2_raw in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
-      job2_id = job2_raw['_id']['$oid']
+    for job2_id in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
       job2 = self.jobs[job2_id]
       if job2['date'] < job1['date']: continue
 
