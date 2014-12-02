@@ -32,7 +32,6 @@ class Graph:
     for job2_raw in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
       job2_id = job2_raw['_id']['$oid']
       job2 = self.jobs[job2_id]
-      #job2 = self.jobs[job2_id]
       if job2['date'] < job1['date']: continue
 
       d1 = util.distance(*job1['delivery']+job2['pickup']) #util.interjob_distance(job1, job2)
@@ -41,6 +40,10 @@ class Graph:
       distances[job2_id] = (d1, d2)
 
     return distances
+
+  def get_price(self, job_id):
+    job = self.jobs[job_id]
+    return job['price']
 
   def get_distance(self, job1_id, job2_id):
     job1 = self.jobs[job1_id]
@@ -57,7 +60,7 @@ class Graph:
     # Add START to self.jobs
     self.jobs[job_id] = dict()
     self.jobs[job_id]['price'] = 0
-    self.jobs[job_id]['pickup'] = None
+    self.jobs[job_id]['pickup'] = (start_lat, start_lng)
     self.jobs[job_id]['delivery'] = (start_lat, start_lng)
     self.jobs[job_id]['date'] = 0
 
