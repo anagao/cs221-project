@@ -11,14 +11,14 @@ def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
   Hopefully we can do all that computation in memory (if not lower k-hop neighbors from 3 to 2).
 
-  Returns a dictionary with key=(job1oid, job2oid)
-  and value=total distance doing end(job1) -> start(job2) -> end(job2)
+  distance_matrix[job1id].keys() is all the neighbors of job1
+  distance_matrix[job1id][job2id] = total distance doing end(job1) -> start(job2) -> end(job2)
   '''
 
   if from_file:
     return json.load(open(from_file))
 
-  distance_matrix = {}
+  distance_matrix = collections.defaultdict(dict)
   
   print 'Building matrix...'
   progress, total =  0, sum(len(v) for v in delivery_grid.values())
@@ -34,7 +34,7 @@ def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
         d1 = util.interjob_distance(job1, job2)
         d2 = util.intrajob_distance(job2)
 
-        distance_matrix[(job1['_id']['$oid'], job2['_id']['$oid'])] = d1 + d2
+        distance_matrix[job1['_id']['$oid']][job2['_id']['$oid']] = d1 + d2
 
       progress += 1
   
