@@ -6,21 +6,42 @@ import util
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
-def generate_job_values(jobs_file):
-   values = {}
-   with open(jobs_file) as f:
+def discretize_job_locations(jobs_file):
+  '''
+  We bucketize jobs by rounding each latitude and longitude to the nearest integer.
+  This works well because 1 degree on earth corresponds to ~67.1 miles.
+  So in order to look at everything within k*68 miles,
+  we just have to look at k buckets around our current bucket.
+
+  create_graph.py::discretize_job_locations() computed the grid and saved them to project data (Arjun sent the Dropbox link).
+  Calling util.py::load_grids() takes approximately 2 minutes to load two 100mb files into memory.
+  '''
+  
+  pickup_grid = collections.defaultdict(list)
+  delivery_grid = collections.defaultdict(list)
+
+  with open(jobs_file) as f:
     for line in f:
       job = json.loads(line)
-      values[job['_id']['$oid']] = job['price']
+      # Add start location to pickup_grid
+      (from_lng, from_lat) = job['pickupAddress']['location']['coordinates']
+      from_i, from_j = int(from_lat), int(from_lng)
+      pickup_grid[(from_i, from_j)].append(job['_id']['$oid'])
 
-    with open(os.path.join('project_data', 'values.json')) as out:
-      json.dump(values, out)
+      # Add end location to delivery_grid
+      (to_lng, to_lat) = job['deliveryAddress']['location']['coordinates']
+      to_i, to_j = int(to_lat), int(to_lng)
+      delivery_grid[(to_i, to_j)].append(job['_id']['$oid'])
+
+  with open(os.path.join('project_data', 'pickup_grid.pickle'), 'wb') as pickup_out:
+    pickle.dump(dict(pickup_grid), pickup_out)
+
+  with open(os.path.join('project_data', 'delivery_grid.pickle'), 'wb') as delivery_out:
+    pickle.dump(dict(delivery_grid), delivery_out)
+
 
 def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   '''
-  Arjun: I haven't had the chance to run this and need to catch a flight now, so if one of you guys could run it that would be great.
-  Hopefully we can do all that computation in memory (if not lower k-hop neighbors from 3 to 2).
-
   distance_matrix[job1id].keys() is all the neighbors of job1
   distance_matrix[job1id][job2id] = total distance doing end(job1) -> start(job2) -> end(job2)
   '''
@@ -52,54 +73,7 @@ def generate_distance_matrix(pickup_grid, delivery_grid, from_file=None):
   
   return distance_matrix
 
-def generate_distance_matrix_source(pickup_grid, job_latlngs, job1_id):
-  ''' Returnds @distance where @distance[neighbor_job_id] = distance doing end()
-  distances = {}'''
-  src_lat, src_lng = job_latlngs[job1_id]
-  for job2 in util.neighbors(pickup_grid, int(src_lat), int(src_lng), k=2):
-    if job2['pickupDate'] < job1['pickupDate']: continue
-
-      d1 = util.interjob_distance(job1, job2)
-      d2 = util.intrajob_distance(job2)
-
-      distances[job2['_id']['$oid']] = d1 + d2
-
-
-
-def discretize_job_locations(jobs_file):
-  '''
-  We bucketize jobs by rounding each latitude and longitude to the nearest integer.
-  This works well because 1 degree on earth corresponds to ~67.1 miles.
-  So in order to look at everything within k*68 miles,
-  we just have to look at k buckets around our current bucket.
-
-  create_graph.py::discretize_job_locations() computed the grid and saved them to project data (Arjun sent the Dropbox link).
-  Calling util.py::load_grids() takes approximately 2 minutes to load two 100mb files into memory.
-  '''
-  
-  pickup_grid = collections.defaultdict(list)
-  delivery_grid = collections.defaultdict(list)
-
-  with open(jobs_file) as f:
-    for line in f:
-      job = json.loads(line)
-      # Add start location to pickup_grid
-      (from_lng, from_lat) = job['pickupAddress']['location']['coordinates']
-      from_i, from_j = int(from_lat), int(from_lng)
-      pickup_grid[(from_i, from_j)].append(job)
-
-      # Add end location to delivery_grid
-      (to_lng, to_lat) = job['deliveryAddress']['location']['coordinates']
-      to_i, to_j = int(to_lat), int(to_lng)
-      delivery_grid[(to_i, to_j)].append(job)
-
-  with open(os.path.join('project_data', 'pickup_grid.pickle'), 'wb') as pickup_out:
-    pickle.dump(dict(pickup_grid), pickup_out)
-
-  with open(os.path.join('project_data', 'delivery_grid.pickle'), 'wb') as delivery_out:
-    pickle.dump(dict(delivery_grid), delivery_out)
-
-
 if __name__ == '__main__':
-  generate_distance_matrix(*util.load_grids())
+  discretize_job_locations(JOBS_WEEK)
+  #generate_distance_matrix(*util.load_grids())
   # Use this once weve run this once: generate_distance_matric(None, None, from_file=os.path.join('project_data', 'distance_matrix.json'))

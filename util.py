@@ -1,4 +1,4 @@
-import sys, os, math, json
+import sys, os, math
 try:
    import cPickle as pickle # faster because implemented in C
 except:
@@ -10,18 +10,12 @@ def print_progress(i, total):
   sys.stdout.write('{0: .3f}%'.format(float(i)/total*100))
   sys.stdout.flush()
 
-def load_values():
-  '''Returns dictionary of dict[job_id] = value'''
-  with open(os.path.join('project_data', 'values.json')) as f:
-    return json.load(f)
-
 def load_grids():
-  '''Returns discretized grids of (int(lat), int(lng)) -> [jobs]
+  '''Returns discretized grids of (int(lat), int(lng)) -> [job_ids]
      First return value is pickup location discretized. Second is dropoff
      location discretized.
 
      create_graph.py::discretize_job_locations() computed the grid and saved them to project data (Arjun sent the Dropbox link).
-     Calling util.py::load_grids() takes approximately 2 minutes to load two 100mb files into memory.
 
      Note: We have a mean of ~155 jobs per node, with a standard 
            deviation of ~290 jobs for delivery and pickup grids.'''

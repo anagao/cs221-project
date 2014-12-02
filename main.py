@@ -1,4 +1,4 @@
-import algorithm, create_graph, hillclimb, util
+import algorithm, create_graph, hillclimb, util, Graph
 
 def main():
     print 'main.py is calling util.load_grids()...'
@@ -9,8 +9,7 @@ def main():
     print 'util.load_grids() complete.'
     # a dictionary with key=(job1oid, job2oid) and value=total distance doing end(job1) -> start(job2) -> end(job2)
     #distance_matrix = create_graph.generate_distance_matrix(pickup_grid, delivery_grid)
-    distance_matrix = create_graph.generate_distance_matrix(None, None, from_file=os.path.join('project_data', 'distance_matrix.json'))
-    values = util.load_values()
+    G = Graph.Graph()
     #print 'generate_distance_matrix() complete.'
 
     max_days = 5 # total number of days that the algorithm is creating a schedule for
