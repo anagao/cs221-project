@@ -3,6 +3,7 @@ import json
 import collections
 import util
 import random
+import datetime
 
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
 JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
@@ -31,7 +32,7 @@ class Graph:
     job1 = self.jobs[job1_id]
     for job2_id in util.neighbors(self.pickup_grid, *job1['delivery'], k=2):
       job2 = self.jobs[job2_id]
-      if job2['date'] < job1['date']: continue
+      if not self.is_after(job1, job2): continue
 
       d1 = util.distance(*job1['delivery']+job2['pickup']) #util.interjob_distance(job1, job2)
       d2 = util.distance(*job2['pickup']+job2['delivery'])
@@ -68,6 +69,20 @@ class Graph:
   def getRandomJobId(self):
     '''Returns a random job_id'''
     return random.choice(self.jobs.keys())
+
+  def is_after(self, job1, job2):
+    '''Checks if we can make it to job2'''
+    start_time = datetime.datetime.fromtimestamp(job1['date']/1000)
+    elapsed_time = self.drive_hours(util.distance(*job1['pickup']+job1['delivery']))
+    current_time = start_time + datetime.timedelta(hours=elapsed_time)
+    return current_time.date() <= datetime.date.fromtimestamp(job2['date']/1000)
+
+  def drive_hours(self, distance):
+    MILES_PER_HOUR = 65
+    HOUR_PER_MILE = 1.0 / MILES_PER_HOUR
+    MAX_HOURS_PER_DAY = 8
+    hours = distance * HOUR_PER_MILE
+    return (hours / MAX_HOURS_PER_DAY + (hours % MAX_HOURS_PER_DAY) / float(MAX_HOURS_PER_DAY)) * 24
 
   def _load_jobs(self, jobs_file):
     '''Private Function

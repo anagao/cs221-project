@@ -1,6 +1,6 @@
 import datetime, collections, os, json
 import numpy
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import util
 
 JOBS = os.path.join('project_data', 'jobs_pruned.json')
@@ -9,6 +9,15 @@ JOBS_WEEK = os.path.join('project_data', 'jobs_week_2014-09-26.json')
 
 def remove_zero_distances(jobs_file):
   '''Removes all jobs with distance 0'''
+  out = open(jobs_file + '_zerod.json', 'w')
+  with open(jobs_file) as f:
+    for line in f:
+      job = json.loads(line)
+      if job['deliveryAddress']['location']['coordinates'] == job['pickupAddress']['location']['coordinates']:
+        continue
+      out.write(line)
+
+  out.close()
 
 
 def unique_jobs(jobs_file):
@@ -138,3 +147,7 @@ def check_distance_accuracy(jobs_file):
   ax.set_xlabel('Miles')
   ax.set_ylabel('Count')
   plt.show()
+
+
+if __name__ == '__main__':
+  remove_zero_distances(JOBS_WEEK)
