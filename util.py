@@ -81,7 +81,7 @@ def printTour(graph, tour):
     job = graph.jobs[job_id]
     totalPrice += job["price"]
     print "#" + job_id[-3:] + ": " + str(job['pickup']) + " ==$" + str(job["price"]) + "==>" + str(job['delivery'])
-  print "Total=$" + str(totalPrice)
+  # print "Total=$" + str(totalPrice)
 
 MPH = 70 # Average miles per hour
 MPG = 6 # Miles per gallon (average semitruck)

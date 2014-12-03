@@ -1,6 +1,8 @@
 """
 Basic greedy hill-climbing algorithm
 @author Aaron Nagao
+
+TODO: MAX_HOURS_PER_DAY=8 working hours, 4 hour LOAD_UNLOAD time 
 """
 from __future__ import division
 import random, util
@@ -43,7 +45,7 @@ class Hillclimb(object):
             curr_id = nextjob_id
         return initialTour[:-1] # while loop breaks the first time that initialTour > max_days, so we chop off that last job
 
-    def generate_swapped_tours(self, tour, pickup_grid, delivery_grid):
+    def generate_swapped_tours(self, tour):
         """
         Generates possible tours, that replace one job with a different one.
         Algorithm: Since there are so many possible tours, swap out jobs randomly.
@@ -51,12 +53,14 @@ class Hillclimb(object):
         For now, only replace jobs with similar pickup location.
         TODO: include delivery location 
         """
-        MAX_SWAPS = 100
+        MAX_SWAPS = 1000
         for _ in xrange(MAX_SWAPS):
+            # randomly choose a job to swap out
             index = random.randrange( len(tour) )
-            job = tour[index]
-            pickup_lng, pickup_lat = job['pickupAddress']['location']['coordinates'] # note lat/lng switched
-            diffJob = random.choice( util.neighbors(pickup_grid, pickup_lat, pickup_lng, k=1) )
+            job_id = tour[index]
+
+            pickup_lat, pickup_lng = self.graph.jobs[job_id]['pickup']
+            diffJob = random.choice( util.neighbors(self.graph.pickup_grid, pickup_lat, pickup_lng, k=1) )
             
             # yield a new tour
             copy = tour[:]
@@ -68,33 +72,27 @@ class Hillclimb(object):
         Hillclimb until we reach a local optima, or until MAX_ITERATIONS
         """
         bestTour = self.get_initial_tour()
-        #util.printTour(graph, bestTour)
-        return bestTour
-
-        """
-        best_score = objective_function(bestTour)
+        best_value = self.getStatistics(bestTour)[1]
         
         num_iterations = 0
-        MAX_ITERATIONS = 1000
+        MAX_ITERATIONS = 100000
         
         while num_iterations < MAX_ITERATIONS:
-            print "Current best: ",
-            util.printTour(graph, bestTour)
+            #print "Current best: ",
+            #util.printTour(self.graph, bestTour)
 
             # examine moves around our current position
             move_made = False
-            for nextTour in generate_swapped_tours(bestTour, pickup_grid, delivery_grid): # generator for all possible moves
+            for nextTour in self.generate_swapped_tours(bestTour): # generator for all possible moves
                 num_iterations += 1
                 if num_iterations >= MAX_ITERATIONS:
                     print "Reached MAX_ITERATIONS."
                     break
                 
                 # see if this move is better than the current
-                next_score = objective_function(nextTour)
-                
-                if next_score > best_score:
-                    bestTour = nextTour
-                    best_score = next_score
+                next_value = self.getStatistics(nextTour)[1]
+                if next_value > best_value:
+                    bestTour, best_value = nextTour, next_value
                     move_made = True
                     break # depth first search
                 
@@ -102,16 +100,7 @@ class Hillclimb(object):
                 print "None of the randomly-generated swaps were better than our current tour."
                 break
         
-        return (best_score, bestTour)
-        """
-
-    def objective_function(self, tour):
-        """
-        Takes a tour (list of job dicts), returns the value of this tour (bigger is better).
-        TODO: incorporate gas, time
-        TODO: objective_function = -inf if tour cannot be done in max_days
-        """
-        return sum( [job['price'] for job in tour] )
+        return bestTour
 
     def getStatistics(self, tour):
         """
@@ -137,4 +126,7 @@ class Hillclimb(object):
         
         totalNumMiles += self.graph.get_distance(jobID, self.start_job_id) # add the last job to home
         totalNumDays = totalNumMiles * Hillclimb.HOUR_PER_MILE / 24
+
+        if totalNumDays > self.max_days:
+            totalValue = float('-inf')
         return (totalNumDays, totalValue)

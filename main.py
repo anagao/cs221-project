@@ -24,7 +24,12 @@ def greedyHillClimbing():
     bestTour = hc.hillclimbAlgorithm()
     print "Final answer: "
     util.printTour(graph, bestTour)
+    
+    (totalNumDays, totalValue) = hc.getStatistics(bestTour)
+    print "Final number of days: " + str(totalNumDays)
+    print "Final value: $" + str(totalValue)
+    print "Final $/hour: " + str(totalValue / totalNumDays / 24)
 
 if __name__ == '__main__':
-    #main()
-    greedyHillClimbing()
+    main()
+    #greedyHillClimbing()
