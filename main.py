@@ -17,14 +17,14 @@ def greedyHillClimbing():
     """
     Greedy hill-climbing algorithm (Aaron)
     """
-    graph = Graph()
-    pickup_grid, delivery_grid = graph.pickup_grid, graph.delivery_grid
-    best_score, bestTour = hillclimb.hillclimb(
-                                pickup_grid=pickup_grid, delivery_grid=delivery_grid,
-                                start_lat=42, start_lng=-71, # Florida=(27,-80)
+    graph = Graph.Graph()
+    hc = hillclimb.Hillclimb(graph,
+                                start_lat=27, start_lng=-80, # (42,-71) also valid
                                 max_days=5)
-    print "Final answer: ",
-    util.printTour(bestTour)
+    bestTour = hc.hillclimbAlgorithm()
+    print "Final answer: "
+    util.printTour(graph, bestTour)
 
 if __name__ == '__main__':
-    main()
+    #main()
+    greedyHillClimbing()

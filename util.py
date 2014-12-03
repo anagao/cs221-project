@@ -72,14 +72,15 @@ def goto_job(start_lat, start_lng, job):
   (to_lng, to_lat) = job['pickupAddress']['location']['coordinates']
   return distance(start_lat, start_lng, to_lat, to_lng)
 
-def printTour(tour):
+def printTour(graph, tour):
   '''
-  Pretty-prints a tour (list of job dicts)
+  Pretty-prints a tour (list of job ids)
   '''
   totalPrice = 0
-  for job in tour:
+  for job_id in tour:
+    job = graph.jobs[job_id]
     totalPrice += job["price"]
-    print "#" + job['_id']['$oid'][-3:] + " ==$" + str(job["price"]) + "==>", # just print the last 3 digits of job id
+    print "#" + job_id[-3:] + ": " + str(job['pickup']) + " ==$" + str(job["price"]) + "==>" + str(job['delivery'])
   print "Total=$" + str(totalPrice)
 
 MPH = 70 # Average miles per hour
