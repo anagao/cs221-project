@@ -1,5 +1,6 @@
 """
 Greedy hill-climbing algorithm: start with a tour and randomly swap out jobs.
+
 @author Aaron Nagao
 """
 from __future__ import division
@@ -24,7 +25,7 @@ class Hillclimb(object):
 
     def get_initial_tour(self):
         """
-        Randomly return some initialTour that is slightly longer than max_days. 
+        Randomly return some initialTour, that is slightly longer than max_days. 
         Returns list of job ids.
         """
         curr_id = self.start_job_id
@@ -33,7 +34,7 @@ class Hillclimb(object):
         while self.getStatistics(initialTour)[0] < self.max_days:
             neighbors = self.graph.distances_from(curr_id)
             if not neighbors: # edge case: if the job we picked has no neighbors
-                # backtrack one step. continue = try again to randomly pick a different neighbor
+                # backtrack one step. continue = let while loop randomly pick a different neighbor
                 initialTour.pop()
                 curr_id = initialTour[-1] if initialTour else self.start_job_id
                 continue
@@ -47,17 +48,16 @@ class Hillclimb(object):
 
     def generate_swapped_tours(self, tour):
         """
-        Generates possible tours, that replace one job with a different one.
-        Algorithm: Since there are so many possible tours, swap out jobs randomly.
-
-        For now, only replace jobs with similar pickup location.
-        TODO: include delivery location 
+        Yield MAX_SWAPS new tours, such that ONE job of @tour is replaced with a different one.
+        Algorithm: Since there are so many possible new tours, swap out jobs randomly.
+        Search space: Swap out jobs with similar pickup location or delivery location (50/50 split)
         """
         for _ in xrange(self.MAX_SWAPS):
             # randomly choose a list index to swap out
             index = random.randrange( len(tour) )
             job_id = tour[index]
 
+            # search for a different job with the same pickup/delivery location
             if random.random() < 0.5:
                 pickup_lat, pickup_lng = self.graph.jobs[job_id]['pickup']
                 diffJob = random.choice( util.neighbors(self.graph.pickup_grid, pickup_lat, pickup_lng, k=1) )
@@ -67,12 +67,15 @@ class Hillclimb(object):
             
             # yield a new tour
             copy = tour[:]
-            copy[index] = diffJob
+            copy[index] = diffJob # swap out job at index for diffJob
             yield copy
 
     def hillclimbAlgorithm(self):
         """
-        Hillclimb until we reach a local optima, or until MAX_ITERATIONS
+        Run hillclimbing algorithm NUM_RUNS times.
+            On each run, hillclimb until none of the swapped tours are better than the one we have 
+            (i.e. a local optima), or until MAX_ITERATIONS
+        Return the best tour over the NUM_RUNS
         """
         bestTour_overall = []
         best_value_overall = float('-inf')
