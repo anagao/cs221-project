@@ -4,6 +4,22 @@ try:
 except:
    import pickle
 
+MAX_HOURS_PER_DAY = 8.0
+MILES_PER_HOUR = 65
+HOUR_PER_MILE = 1.0 / MILES_PER_HOUR
+LOAD_DELOAD_HOURS = 4
+EMPTY_DOLLAR_PER_MILE = 1
+FULL_DOLLAR_PER_MILE = 2
+
+# Helper functions, used by both algorithm and hillclimb
+def miles_to_drive_days(miles):
+  return (miles*HOUR_PER_MILE + LOAD_DELOAD_HOURS) / float(MAX_HOURS_PER_DAY)
+
+def compute_profit(price, interjob_distance, intrajob_distance):
+  return price - interjob_distance*EMPTY_DOLLAR_PER_MILE - intrajob_distance*FULL_DOLLAR_PER_MILE
+
+
+
 def print_progress(i, total):
   '''Print progress bar of i/total'''
   sys.stdout.write('\r')
@@ -80,10 +96,12 @@ def printTour(graph, tour):
   for job_id in tour:
     job = graph.jobs[job_id]
     totalPrice += job["price"]
-    print "#" + job_id[-3:] + ": " + str(job['pickup']) + " ==$" + str(job["price"]) + "==>" + str(job['delivery'])
+    print "#" + job_id[-3:] + ": " + "(%.2f,%.2f)"%job['pickup'] + " ==$" + str(job["price"]) + "==>" + "(%.2f,%.2f)"%job['delivery']
   # print "Total=$" + str(totalPrice)
 
+"""
 MPH = 70 # Average miles per hour
 MPG = 6 # Miles per gallon (average semitruck)
 PPG = 4 # $ per gallon of diesel
 CPM = MPG * PPG # Cost per mile
+"""

@@ -50,12 +50,6 @@ Input:
 class BestRoute(object):
 	EXPLORE_EDGES = 15
 	FIND_NODE_DEPTH = 3
-	MAX_HOURS_PER_DAY = 8
-	MILES_PER_HOUR = 65
-	HOUR_PER_MILE = 1.0 / MILES_PER_HOUR
-	EMPTY_DOLLAR_PER_MILE = 1
-	FULL_DOLLAR_PER_MILE = 2
-	LOAD_DELOAD_HOURS = 4
 
 	def __init__(self, graph, start_lat, start_lng, min_days, max_days):
 		# Graph data structure
@@ -68,8 +62,6 @@ class BestRoute(object):
 		self.start_job_id = graph.create_start_node(start_lat, start_lng) # create pseudo-start node
 		self.end_job_id = self.start_job_id
 
-
-
 	"""
 	solve
 	A wrapper function that attempts to find the best path for to maximize the truckers profit with a trip
@@ -77,10 +69,6 @@ class BestRoute(object):
 	a best solution in real time, but does not guarantee an optimal soluiton.
 	"""
 	def solve(self):
-
-
-		def hours_to_drive_days(hours):
-			return int(hours / BestRoute.MAX_HOURS_PER_DAY) + (hours % BestRoute.MAX_HOURS_PER_DAY) / float(BestRoute.MAX_HOURS_PER_DAY)
 
 		def find_next_node(node_id, visited, cur_days, depth=0):
 			"""
@@ -99,14 +87,14 @@ class BestRoute(object):
 				if neighbor_id in visited: continue
 
 				total_dist_to_home = interjob_distance + intrajob_distance + self.graph.get_distance(neighbor_id, self.end_job_id)
-				min_days_to_home = hours_to_drive_days(total_dist_to_home * BestRoute.HOUR_PER_MILE + BestRoute.LOAD_DELOAD_HOURS)
+				min_days_to_home = util.miles_to_drive_days(total_dist_to_home)
 				if cur_days + min_days_to_home > self.max_days: continue #don't consider if it forces not to get home on time.
 				
 				# need to keep best scores, so multiply input by -1
 				price = self.graph.get_price(neighbor_id)
 
-				trip_days = hours_to_drive_days((interjob_distance+intrajob_distance) * BestRoute.HOUR_PER_MILE + BestRoute.LOAD_DELOAD_HOURS)
-				score = -1 * (price - interjob_distance*BestRoute.EMPTY_DOLLAR_PER_MILE - intrajob_distance*BestRoute.FULL_DOLLAR_PER_MILE) / trip_days
+				trip_days = util.miles_to_drive_days( interjob_distance+intrajob_distance )
+				score = -1 * util.compute_profit(price, interjob_distance, intrajob_distance) / trip_days
 				if pq.qsize() == BestRoute.EXPLORE_EDGES:
 					min_edge = pq.get()
 					if score < min_edge[0]:
@@ -128,7 +116,7 @@ class BestRoute(object):
 				neighbor_id, interjob_distance, intrajob_distance, price = neighbor_tuple
 				one_step_profit = -1 * neg_one_step_profit
 				#print("one step prof: " + str(one_step_profit))
-				additional_days = hours_to_drive_days((interjob_distance + intrajob_distance) * BestRoute.HOUR_PER_MILE + BestRoute.LOAD_DELOAD_HOURS)
+				additional_days = util.miles_to_drive_days(interjob_distance + intrajob_distance)
 
 				if depth == BestRoute.FIND_NODE_DEPTH - 1: #limit the search
 					next_score = self.evaluation_function(neighbor_id, cur_days + additional_days)
@@ -139,8 +127,8 @@ class BestRoute(object):
 					best_score = one_step_profit + next_score
 					best_next_node_id = neighbor_id
 					best_job_days = additional_days
-					best_jobs_money = price - interjob_distance*BestRoute.EMPTY_DOLLAR_PER_MILE - intrajob_distance*BestRoute.FULL_DOLLAR_PER_MILE
-					best_return_home_cost = self.graph.get_distance(neighbor_id, self.end_job_id) * BestRoute.EMPTY_DOLLAR_PER_MILE
+					best_jobs_money = util.compute_profit(price, interjob_distance, intrajob_distance)
+					best_return_home_cost = self.graph.get_distance(neighbor_id, self.end_job_id) * util.EMPTY_DOLLAR_PER_MILE
 
 			if depth != 0: visited.remove(node_id)
 			return best_next_node_id, best_job_days, best_jobs_money, best_return_home_cost, best_score
