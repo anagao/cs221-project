@@ -1,4 +1,7 @@
-import algorithm, Graph, hillclimb, util
+import algorithm, Graph, hillclimb, util, random
+import matplotlib.pyplot as plt
+
+import sys, os
 
 def main():
     graph = Graph.Graph()
@@ -14,6 +17,91 @@ def main():
     path_profit = br.solve()
     print path_profit
 
+def sensitivity_analysis():
+    def rand_trial():
+        rand_id = graph.getRandomJobId()
+        (start_lat, start_lng) = graph.jobs[rand_id]['pickup']
+        return algorithm.BestRoute(graph, start_lat, start_lng, min_days, max_days)
+
+    graph = Graph.Graph()
+    print 'Graph Created'
+
+    N_TRIALS = 5 # ARTHUR: Quality results vs Speed tradeoff parameter
+
+    # Parameter = max_days
+    print 'Sensitizing Max Days'
+    maxdays_X = range(3, 10) # ARTHUR: Edit
+    maxdays_Y = []
+    min_days = 1
+    for i, max_days in enumerate(maxdays_X):
+        util.print_progress(i, len(maxdays_X))
+        trial_total = 0
+        sys.stdout = open(os.devnull, "w") # Mute printing
+        for trial in range(N_TRIALS):
+            br = rand_trial()
+            trial_total += max(br.solve()) # ARTHUR: divide by trip length here
+        
+        sys.stdout = sys.__stdout__ # Unmute printing
+        maxdays_Y.append(trial_total / float(N_TRIALS))
+
+    print
+    print 'Days', maxdays_X, maxdays_Y
+
+
+    # Parameter = explore_edges
+    print 'Sensitizing EXPLORE_EDGES'
+    exploration_X = range(10, 15) #ARTHUR: Edit
+    exploration_Y = []
+    min_days = 1
+    max_days = 7
+    for i, exploration in enumerate(exploration_X):
+        util.print_progress(i, len(exploration_X))
+        trial_total = 0
+        sys.stdout = open(os.devnull, "w") # Mute printing
+        for trial in range(N_TRIALS):
+            br = rand_trial()
+            br.EXPLORE_EDGES = exploration
+            trial_total += max(br.solve()) # ARTHUR: divide by trip length here
+        
+        sys.stdout = sys.__stdout__ # Unmute printing
+        exploration_Y.append(trial_total / float(N_TRIALS))
+
+    print
+    print 'Exploration', exploration_X, exploration_Y
+
+    # Parameter = FIND_NODE_DEPTH
+    print 'Sensitizing FIND_NODE_DEPTH'
+    depth_X = range(1, 5) # ARTHUR: Edit
+    depth_Y = []
+    min_days = 1
+    max_days = 7
+    for i, node_depth in enumerate(depth_X):
+        util.print_progress(i, len(depth_X))
+        trial_total = 0
+        sys.stdout = open(os.devnull, "w") # Mute prnting
+        for trial in range(N_TRIALS):
+            br = rand_trial()
+            br.FIND_NODE_DEPTH = node_depth
+            trial_total += max(br.solve()) # ARTHUR: divide by trip length here
+        
+        sys.stdout = sys.__stdout__ #Unmute prnting
+        depth_Y.append(trial_total / float(N_TRIALS))
+
+    print
+    print 'Depth', depth_X, depth_Y
+    
+    # Plot results
+    plt.plot(maxdays_X, maxdays_Y)
+    plt.title('Value over Max Trip Length')
+    plt.show()
+
+    plt.plot(exploration_X, exploration_Y)
+    plt.title('Value over Exploration Width')
+    plt.show()
+
+    plt.plot(depth_X, depth_Y)
+    plt.title('Value over Depth')
+    plt.show()
 def greedyHillClimbing():
     """
     Greedy hill-climbing algorithm (Aaron)
@@ -34,4 +122,5 @@ def greedyHillClimbing():
 
 if __name__ == '__main__':
     #main()
-    greedyHillClimbing()
+    #greedyHillClimbing()
+    sensitivity_analysis()
