@@ -4,6 +4,7 @@ The Traveling Sales-Truck Problem
 Arthur Brant (abrant), Arjun Mathur (arjunm), Aaron Nagao (anagao)
 
 ## Code
+Our code can be found on Github at https://github.com/anagao/cs221-project
 * `main.py`: Driver code, run via `python main.py`. Choose which function to run at the bottom. Contains the code which explores different values for the algorithm's parameters (@Arjun)
 * `algorithm.py`: Tree-search algorithm (@Arthur) and evaluation function (@Aaron)
 * `hillclimb.py`: Hill-climbing algorithm (@Aaron)
