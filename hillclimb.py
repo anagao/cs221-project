@@ -17,7 +17,7 @@ class Hillclimb(object):
         # algorithm parameters to tweak
         # increase these parameters for wider search space but longer runtime
         self.NUM_RUNS = 10 # number of times to restart + rerun hillclimbing algorithm
-        self.MAX_SWAPS = 1000 # number of swaps to make on a tour before giving up
+        self.MAX_SWAPS = 1000 # number of swaps to make on a single tour before giving up
                 
         # algorithm data structures
         self.graph = graph # Graph data structure
@@ -85,7 +85,7 @@ class Hillclimb(object):
             best_value = self.getStatistics(bestTour)[1] # $/day
             
             num_iterations = 0
-            MAX_ITERATIONS = 100000
+            MAX_ITERATIONS = 10000 # stop early even if it hasn't converged yet (for runtime reasons)
             while num_iterations < MAX_ITERATIONS:
                 #print "Current best: "
                 #util.printTour(self.graph, bestTour)
@@ -110,7 +110,7 @@ class Hillclimb(object):
                     break
 
             # finished one run of hillclimbing. Compare to global best overall
-            print "Best tour on iteration " + str(run) + ": $" + str(best_value) + "/day"
+            #print "Best tour on iteration " + str(run) + ": $" + str(best_value) + "/day"
             if best_value > best_value_overall:
                 bestTour_overall, best_value_overall = bestTour, best_value
 
@@ -124,7 +124,7 @@ class Hillclimb(object):
         if len(tour)==0:
             return (0,0)
 
-        totalNumMiles, totalValue = 0, 0
+        totalNumDays, totalValue = 0, 0
         prevID = self.start_job_id
 
         for jobID in tour:
@@ -133,13 +133,13 @@ class Hillclimb(object):
             interjob_distance = self.graph.get_distance(prevID, jobID) # drive from prev job to this job            
             intrajob_distance = util.distance(*currJob['pickup']+currJob['delivery']) # do this job
 
-            totalNumMiles += interjob_distance+intrajob_distance
-            totalValue =  util.compute_profit(currJob['price'], interjob_distance, intrajob_distance)
+            totalNumDays += util.miles_to_drive_days( interjob_distance+intrajob_distance )
+            totalValue += util.compute_profit(currJob['price'], interjob_distance, intrajob_distance)
 
             prevID = jobID
         
-        totalNumMiles += self.graph.get_distance(jobID, self.start_job_id) # add the last job to home
-        totalNumDays = util.miles_to_drive_days(totalNumMiles)
+        # add # of days from the last job to home
+        totalNumDays += util.miles_to_drive_days( self.graph.get_distance(jobID, self.start_job_id) )
 
         if totalNumDays > self.max_days:
             totalValue = float('-inf')

@@ -8,6 +8,7 @@ MAX_HOURS_PER_DAY = 8.0
 MILES_PER_HOUR = 65
 HOUR_PER_MILE = 1.0 / MILES_PER_HOUR
 LOAD_DELOAD_HOURS = 4
+# Average cost per mile is $1.38 (http://www.thetruckersreport.com/infographics/cost-of-trucking/)
 EMPTY_DOLLAR_PER_MILE = 1
 FULL_DOLLAR_PER_MILE = 2
 
